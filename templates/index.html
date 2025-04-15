@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Digest</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@400;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,700;1,400&display=swap">
 </head>
 <body>
     <header>
@@ -16,53 +16,158 @@
         </div>
         <nav>
             <ul>
-                <li><a href="/">Home</a></li>
-                <li><a href="/?category=world">World</a></li>
-                <li><a href="/?category=business">Business</a></li>
-                <li><a href="/?category=technology">Technology</a></li>
-                <li><a href="/?category=sports">Sports</a></li>
-                <li><a href="/?category=science">Science</a></li>
+                <li><a href="/" {% if not current_category %}class="active"{% endif %}>Home</a></li>
+                <li><a href="/?category=world" {% if current_category == 'world' %}class="active"{% endif %}>World</a></li>
+                <li><a href="/?category=business" {% if current_category == 'business' %}class="active"{% endif %}>Business</a></li>
+                <li><a href="/?category=technology" {% if current_category == 'technology' %}class="active"{% endif %}>Technology</a></li>
+                <li><a href="/?category=sports" {% if current_category == 'sports' %}class="active"{% endif %}>Sports</a></li>
+                <li><a href="/?category=science" {% if current_category == 'science' %}class="active"{% endif %}>Science</a></li>
+                <li><a href="/?category=health" {% if current_category == 'health' %}class="active"{% endif %}>Health</a></li>
+                <li><a href="/?category=entertainment" {% if current_category == 'entertainment' %}class="active"{% endif %}>Arts</a></li>
+                <li class="refresh-button">
+                    <a href="{% if current_category %}/refresh?category={{ current_category }}{% else %}/refresh{% endif %}" title="Get fresh news">
+                        <span class="refresh-icon">↻</span> Refresh
+                    </a>
+                </li>
             </ul>
         </nav>
     </header>
     
     <main>
+        {% if error_message %}
+        <div class="error-message">
+            <p>{{ error_message }}</p>
+            <a href="{% if current_category %}/refresh?category={{ current_category }}{% else %}/refresh{% endif %}" class="refresh-link">Try Again</a>
+        </div>
+        {% endif %}
+        
+        {% if current_category %}
+        <div class="category-header">
+            <h2 class="category-title">{{ current_category|capitalize }} News</h2>
+        </div>
+        {% endif %}
+        
         <!-- Main headline article -->
         {% if articles|length > 0 %}
         <section class="headline">
-            <article>
+            <article data-article-id="{{ articles[0].id }}" class="article-clickable">
                 {% if articles[0].image %}
                 <div class="image-container">
                     <img src="{{ articles[0].image }}" alt="{{ articles[0].title }}">
                 </div>
+                {% elif articles[0].images and articles[0].images|length > 0 %}
+                <div class="image-container">
+                    <img src="{{ articles[0].images[0] }}" alt="{{ articles[0].title }}">
+                </div>
+                {% else %}
+                <div class="image-container no-image">
+                    <div class="placeholder-image">The Daily Digest</div>
+                </div>
                 {% endif %}
                 <div class="content">
                     <h2>{{ articles[0].title }}</h2>
-                    <p class="source">{{ articles[0].source }} | {{ articles[0].published }}</p>
-                    <p class="summary">{{ articles[0].summary }}</p>
-                    <a href="{{ articles[0].url }}" target="_blank">Read more</a>
+                    <p class="meta">
+                        <span class="source">{{ articles[0].source }}</span> | 
+                        <span class="published">{{ articles[0].published }}</span>
+                        {% if articles[0].authors and articles[0].authors|length > 0 %}
+                        | <span class="author">By {{ articles[0].authors|join(', ') }}</span>
+                        {% endif %}
+                    </p>
+                    
+                    <!-- Full text content -->
+                    <div class="article-content">
+                        {% if articles[0].paragraphs and articles[0].paragraphs|length > 0 %}
+                            {% for paragraph in articles[0].paragraphs[:3] %}
+                                <p>{{ paragraph }}</p>
+                            {% endfor %}
+                            {% if articles[0].paragraphs|length > 3 %}
+                                <p class="read-more"><a href="#" class="read-more-link" data-article-id="{{ articles[0].id }}">Continue reading...</a></p>
+                            {% endif %}
+                        {% elif articles[0].content_html %}
+                            <div class="html-content">
+                                {{ articles[0].content_html|safe }}
+                            </div>
+                        {% else %}
+                            <p class="summary">{{ articles[0].summary }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             </article>
         </section>
-        {% endif %}
         
         <!-- Secondary articles in columns -->
         <section class="articles-grid">
             {% for article in articles[1:] %}
-            <article class="article-card">
+            <article class="article-card article-clickable" data-article-id="{{ article.id }}">
                 {% if article.image %}
                 <div class="image-container">
                     <img src="{{ article.image }}" alt="{{ article.title }}">
                 </div>
+                {% elif article.images and article.images|length > 0 %}
+                <div class="image-container">
+                    <img src="{{ article.images[0] }}" alt="{{ article.title }}">
+                </div>
+                {% else %}
+                <div class="image-container no-image">
+                    <div class="placeholder-image">{{ article.source }}</div>
+                </div>
                 {% endif %}
                 <h3>{{ article.title }}</h3>
-                <p class="source">{{ article.source }} | {{ article.published }}</p>
-                <p class="summary">{{ article.summary[:150] }}{% if article.summary|length > 150 %}...{% endif %}</p>
-                <a href="{{ article.url }}" target="_blank">Read more</a>
+                <p class="meta">
+                    <span class="source">{{ article.source }}</span> | 
+                    <span class="published">{{ article.published }}</span>
+                </p>
+                
+                <!-- Article content -->
+                <div class="article-content">
+                    {% if article.paragraphs and article.paragraphs|length > 0 %}
+                        {% for paragraph in article.paragraphs[:2] %}
+                            <p>{{ paragraph }}</p>
+                        {% endfor %}
+                        {% if article.paragraphs|length > 2 %}
+                            <p class="read-more"><a href="#" class="read-more-link" data-article-id="{{ article.id }}">Continue reading...</a></p>
+                        {% endif %}
+                    {% else %}
+                        <p class="summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
+                    {% endif %}
+                </div>
             </article>
             {% endfor %}
         </section>
+        {% elif not error_message %}
+        <!-- No articles found - show placeholder content -->
+        <div class="no-articles">
+            <h2>Loading News...</h2>
+            <p>We're gathering the latest stories. Please refresh the page in a moment.</p>
+            <a href="{% if current_category %}/refresh?category={{ current_category }}{% else %}/refresh{% endif %}" class="refresh-link">Refresh Now</a>
+        </div>
+        {% endif %}
     </main>
+    
+    <!-- Article Modal -->
+    <div id="article-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <button class="modal-close">&times;</button>
+                <div class="modal-source-info">
+                    <span class="modal-source"></span> | 
+                    <span class="modal-date"></span>
+                </div>
+                <h2 class="modal-title"></h2>
+                <div class="modal-authors"></div>
+            </div>
+            <div class="modal-content">
+                <div class="modal-image-container"></div>
+                <div class="modal-article-content"></div>
+                <div class="modal-keywords"></div>
+                <div class="modal-gallery"></div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="modal-original-link" target="_blank">View original article</a>
+            </div>
+        </div>
+    </div>
     
     <footer>
         <p>&copy; {{ current_year }} The Daily Digest. All rights reserved.</p>
